@@ -1,0 +1,183 @@
+/**
+@mainpage Rubik's Cube Documentation
+
+@section overview Overview
+
+This project implements a 3x3x3 Rubik's Cube in C++17. The @ref RubiksCube
+class is a self-contained model of the puzzle: it stores the 54 stickers,
+performs face turns, checks whether the cube is solved, generates random
+placements, and reads and writes cube states through files and streams. A
+separate console front end, @ref ConsoleUI, exposes the model through a small
+interactive menu. The project is built with CMake and is covered by UnitTest++
+unit tests.
+
+@section capabilities Required class capabilities
+
+The model fulfils the requirements of the assignment:
+
+- Encapsulation: all 54 stickers are private and are accessed through
+  @ref RubiksCube::at, @ref RubiksCube::set, and the public operations.
+- Copy construction and copy assignment produce independent deep copies;
+  self-assignment is safe.
+- A destructor is provided (trivially, because the class owns no dynamic
+  resources).
+- Comparison with `==` and `!=` compares every sticker of two cubes.
+- Stream input with `>>` and stream output with `<<`.
+- File input and output through @ref RubiksCube::loadFromFile and
+  @ref RubiksCube::saveToFile.
+- Random initial placement, face rotation, and a solved-state check.
+- The declaration lives in `include/RubiksCube.h`, the implementation in
+  `src/RubiksCube.cpp`, and the class has no dependency on the user interface.
+
+@section color_scheme Canonical color scheme
+
+The default constructor creates the canonical solved cube. Every face is
+uniform and uses these colors:
+
+| Face  | Outward normal | Solved color |
+|-------|----------------|--------------|
+| Up    | +y             | White        |
+| Down  | -y             | Yellow       |
+| Left  | -x             | Orange       |
+| Right | +x             | Red          |
+| Front | +z             | Green        |
+| Back  | -z             | Blue         |
+
+The sticker colors are therefore White, Yellow, Green, Blue, Red, and Orange,
+abbreviated `W`, `Y`, `G`, `B`, `R`, and `O`.
+
+@section rotation Convention and coordinate system
+
+The model uses a right-handed coordinate system: +x points right, +y points up,
+and +z points toward the viewer (front). The outward normal of each face is the
+one listed in the color-scheme table above.
+
+Each face stores nine stickers in row-major order. Row 0 is the top row and
+column 0 is the left column as seen from outside that face. When looking
+directly at a face, the on-screen right and down directions are:
+
+- Front: (+x, -y)
+- Back:  (-x, -y)
+- Up:    (+x, +z)
+- Down:  (+x, -z)
+- Right: (-z, -y)
+- Left:  (+z, -y)
+
+A clockwise turn is a -90 degree rotation about the face's outward normal; a
+counter-clockwise turn is +90 degrees about the same normal. The whole layer
+of 21 stickers (9 on the face and 12 on the adjacent strips) moves as one rigid
+body: colors travel with their positions and face orientations travel with
+their normals. Every turn is therefore a permutation, and the number of
+stickers of each color never changes.
+
+See @ref RubiksCube::rotate for the operation and @ref RubiksCube::Turn for the
+two directions.
+
+@section sticker_format Sticker, file, and stream format
+
+A cube state is a sequence of exactly 54 color characters, written as six
+lines of nine characters each. The face order is Up, Down, Left, Right, Front,
+Back, and the nine characters of a face are its stickers in row-major order,
+from the top-left sticker to the bottom-right sticker as seen from outside.
+The colors are encoded as `W` (White), `Y` (Yellow), `G` (Green), `B` (Blue),
+`R` (Red), and `O` (Orange).
+
+A solved cube is written as:
+
+```
+WWWWWWWWW
+YYYYYYYYY
+OOOOOOOOO
+RRRRRRRRR
+GGGGGGGGG
+BBBBBBBBB
+```
+
+On output, `operator<<` writes exactly six lines of nine uppercase characters.
+On input, `operator>>` skips leading and embedded whitespace, accepts
+uppercase or lowercase color letters, and reads exactly 54 valid characters.
+The target cube is modified only when all 54 characters are valid; otherwise
+`failbit` is set and the cube is left unchanged.
+
+@section random Random placement
+
+@ref RubiksCube::randomize(std::mt19937&) fills the cube with a random
+permutation of the sticker colors, always placing exactly nine stickers of each
+color. The caller supplies the generator, so the sequence is reproducible.
+The overload @ref RubiksCube::randomize() seeds a `std::mt19937` from
+`std::random_device`. The resulting placement need not be solvable.
+
+@section file_io Loading and saving
+
+@ref RubiksCube::loadFromFile reads a state from a text file using the format
+above and returns `true` on success. If the file cannot be opened or parsed,
+it returns `false` and leaves the cube unchanged. @ref RubiksCube::saveToFile
+writes the state in the same format and returns `true` on success, or `false`
+if the file cannot be opened or written.
+
+@section solved Solved check
+
+@ref RubiksCube::isSolved returns `true` only when every face is uniform and
+each face has its canonical solved color. A cube with uniform faces but a
+different color arrangement is not solved.
+
+@section separation Separation of model and console UI
+
+@ref RubiksCube is a pure model. It does not print prompts or read commands,
+and it can be embedded in any front end. @ref ConsoleUI owns a cube, uses only
+the public model API, and communicates through the input and output streams
+passed to its constructor. This keeps the puzzle logic independent of the menu
+text and of `std::cin`/`std::cout`, and makes the model directly testable.
+
+@section build_run Building, running, testing, and documentation
+
+Build the project from its root directory:
+
+```
+cmake -S . -B build
+cmake --build build
+```
+
+Run the console application:
+
+```
+./build/rubiks_cube_app
+```
+
+The menu offers showing the cube, randomizing it, loading a state from a file,
+rotating a face, checking whether it is solved, saving a state to a file, and
+exiting. Faces are entered as `U`, `D`, `L`, `R`, `F`, or `B`; directions are
+entered as `c` for clockwise or `a` for counter-clockwise.
+
+Run the unit tests:
+
+```
+ctest --test-dir build --output-on-failure
+```
+
+The UnitTest++ suite covers at least 30 test cases. UnitTest++ is fetched
+automatically by CMake when it is not installed.
+
+Generate this documentation with Doxygen from the project root:
+
+```
+doxygen Doxyfile
+```
+
+The HTML output is written to `docs/generated/html/index.html`. The
+`docs/generated/` directory is ignored by Git, as is the `build/` directory.
+
+@section layout Project layout
+
+- `include/RubiksCube.h` — model declaration and API documentation
+- `include/ConsoleUI.h` — console front-end declaration
+- `src/RubiksCube.cpp` — cube storage, turns, I/O, and solved check
+- `src/ConsoleUI.cpp` — interactive menu implementation
+- `src/main.cpp` — program entry point
+- `tests/test_main.cpp`, `tests/test_cube.cpp` — UnitTest++ suite
+- `data/` — example solved and scrambled cube states
+- `docs/mainpage.dox` — this documentation main page
+- `Doxyfile` — Doxygen configuration
+- `README.md` — build, run, and documentation quick start
+- `CMakeLists.txt` — CMake build and test configuration
+*/

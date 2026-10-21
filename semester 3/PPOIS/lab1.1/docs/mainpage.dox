@@ -1,0 +1,92 @@
+/**
+@mainpage Polynomial Documentation
+
+@section overview Overview
+
+The @ref Polynomial class represents a polynomial in one variable with
+coefficients of type `double`. A polynomial is defined by its degree and by
+an array of coefficients, where index 0 is the constant term, index 1 is the
+coefficient of `x`, index 2 is the coefficient of `x^2`, and so on.
+
+For example, the polynomial `1 + 2x + 3x^2` has degree 2 and coefficients
+`{1, 2, 3}`.
+
+Internally the coefficients are stored in a `std::vector<double>`, and every
+construction and arithmetic operation normalizes the result by removing
+leading zero coefficients. The zero polynomial always has degree 0 and a
+single coefficient equal to 0. Coefficients are stored and compared exactly as
+`double` values; no rounding or tolerance-based comparison is performed.
+
+@section operations Supported operations
+
+The class supports the following operations:
+
+- Construction of the zero polynomial, a zero polynomial with a nominal
+  degree, a polynomial from a degree and coefficient array, and a polynomial
+  from an initializer list.
+- Copy and move construction, copy and move assignment, and destruction.
+- @ref Polynomial::degree "degree()" to obtain the normalized degree.
+- @ref Polynomial::operator[] "operator[]" to read or modify a coefficient.
+- @ref Polynomial::operator() "operator()" to evaluate the polynomial at a
+  given argument using Horner's method.
+- Addition with `+` and `+=`.
+- Subtraction with `-` and `-=`.
+- Multiplication with `*` and `*=`.
+- Division with `/` and `/=` (see @ref division_semantics).
+- Exact comparison with `==` and `!=`.
+- Stream output with `<<` and stream input with `>>`.
+
+@section io_format Input and output format
+
+Polynomials are written and read in the following whitespace-separated format:
+
+```
+degree c0 c1 ... cdegree
+```
+
+The first value is a non-negative integer degree, followed by exactly
+`degree + 1` coefficients ordered from the constant term upwards. There is no
+label and no trailing newline in the output. For example:
+
+```
+2 1 2 3
+```
+
+represents `1 + 2x + 3x^2`, while the zero polynomial is written as:
+
+```
+0 0
+```
+
+On input, the degree must be non-negative and all `degree + 1` coefficients
+must be available. The value is read into a temporary polynomial, validated,
+and normalized; the target polynomial is modified only on success. If parsing
+or validation fails, `failbit` is set on the input stream and the target
+polynomial is left unchanged.
+
+@section division_semantics Division semantics
+
+Division uses truncated polynomial long division. The operators `/` and `/=`
+return only the quotient; the remainder is discarded, and the result is
+normalized. If the dividend has a lower degree than the divisor, the quotient
+is the zero polynomial. Dividing by the zero polynomial throws
+`std::domain_error`.
+
+For example, `(x^2 - 1) / (x - 1)` produces `x + 1` and discards the zero
+remainder, while `1 / (x + 1)` produces the zero polynomial.
+
+@section exceptions Exception behavior
+
+- Constructors throw `std::invalid_argument` when a negative degree is
+  supplied, or when a null coefficient pointer is passed with a non-negative
+  degree.
+- @ref Polynomial::operator[] "operator[]" throws `std::out_of_range` when the
+  requested index is outside the range `[0, degree()]`.
+- Division by the zero polynomial throws `std::domain_error`.
+- Stream input reports malformed input by setting `failbit` instead of throwing;
+  the target polynomial is not modified.
+
+The console application catches `std::invalid_argument`, `std::out_of_range`,
+`std::domain_error`, and other `std::exception` types so that invalid user
+input does not terminate the program.
+*/
