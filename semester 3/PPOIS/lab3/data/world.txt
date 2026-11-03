@@ -1,0 +1,20 @@
+# Animal world description (mode: auto, steps: 12)
+
+rows 8
+cols 8
+steps 12
+growth 0.25
+seed 42
+
+plants 14
+Rabbit 3
+Deer 2
+Wolf 2
+Bison 1
+Cheetah 1
+Lion 1
+Eagle 2
+Snake 1
+Bear 1
+Gazelle 2
+Giraffe 1
